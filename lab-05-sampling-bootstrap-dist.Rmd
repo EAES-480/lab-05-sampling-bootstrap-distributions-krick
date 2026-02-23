@@ -12,7 +12,7 @@ output:
     code_folding: hide
     df_print: paged
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
@@ -54,13 +54,13 @@ Use slides + past labs + Discord as needed, but make sure your final code is **y
 
 Complete the pipeline so `df` is a clean tibble. Filter for 2023, and replace fill values (-9999) with na.
 
-```{r load_data, echo=TRUE, eval=FALSE}
+```{r load_data, echo=TRUE, eval=TRUE}
 # GOAL: Read the CSV from the repo and clean column names.
 # TODO: finish this pipeline.
 
-df <- read_csv("data/us-ams-simple.csv", na = c("____")) %>%
-  ___ %>%
-  ___
+df <- read_csv("data/us-ams-simple.csv", na = c("-9999")) %>%
+  clean_names() %>%
+  filter(year_local== "2023")
 
 glimpse(df)
 ```
@@ -72,7 +72,7 @@ Write code to add:
 - `month` as labeled abbreviated month (Jan–Dec)
 - `day_night` as "Day"/"Night" from `daytime` (0/1)
 
-```{r derive_time, echo=TRUE, eval=FALSE}
+```{r derive_time, echo=TRUE, eval=TRUE}
 # GOAL: Create date/month/day_night columns.
 # HINT: DOY is 1-indexed, so use (doy - 1) with origin "YYYY-01-01".
 
@@ -80,10 +80,10 @@ df <- df %>%
  mutate(
     # TODO: create a Date column from year_local and doy
     # HINT: Jan 1 is DOY = 1, so use (doy - 1) with origin = "YYYY-01-01"
-    date = as.Date(___ - 1, origin = paste0(___, "-01-01")),
+    date = as.Date(doy- 1, origin = paste0(year_local, "-01-01")),
 
     # TODO: create a month column (numeric 1–12 or labeled months)
-    month = month(___, label = TRUE, abbr = TRUE),
+    month = month(date, label = TRUE, abbr = TRUE),
 
     # TODO: make a day/night label using daytime (0/1)
     day_night = if_else(daytime == 1, "Day", "Night")
@@ -101,11 +101,11 @@ df %>% count(day_night)
 
 Pick **2–3 variables** to analyze. Include at least **one flux** variable (e.g., `nee`, `fc`, `gpp`) and optionally one meteorological variable (e.g., `ta`, `le`).
 
-```{r choose_vars, echo=TRUE, eval=FALSE}
+```{r choose_vars, echo=TRUE, eval=TRUE}
 vars <- c(
-  ___,  # e.g., "fc"
-  ___,  # e.g., "ta"
-  ___   # optional third variable
+  "gpp",  # e.g., "fc"
+  "le",  # e.g., "ta"
+  "reco"  # optional third variable
 )
 
 # CHECK: confirm these columns exist (should return character(0))
@@ -120,7 +120,7 @@ Complete the code to compute **population mean** and **population SD** for each 
 
 Your output should be a tibble named `pop` with columns: `var`, `mean`, `sd`.
 
-```{r pop_params, echo=TRUE, eval=FALSE}
+```{r pop_params, echo=TRUE, eval=TRUE}
 # GOAL: Create a tidy table of population parameters for vars.
 # TODO: complete this pipeline.
 
@@ -139,14 +139,14 @@ pop <- df %>%
     names_sep = "__",
     values_to = "value"
   ) %>%   
-  pivot_wider(names_from = ___, values_from = ___)       # TODO: pivot_wider
+  pivot_wider(names_from = stat, values_from = value)       # TODO: pivot_wider
 
 pop
 ```
 
 **Prompt (2–3 sentences):** Which variable has the largest population SD? What does that imply about the variability of that process?
 
-> *Write your answer here.*
+> `le` has the largest population SD. This implies that this process has higher variability meaning that it fluctuates more widely than `gpp` or `reco`. This might also suggest that `le` responds more strongly to various changes in environment than `gpp` or `reco`. 
 
 ---
 
@@ -171,23 +171,23 @@ Write code to:
 
 Return a tibble with columns: `var`, `sample_mean`, `pop_mean`, `rel_error_pct`.
 
-```{r one_sample_relerr, echo=TRUE, eval=FALSE}
+```{r one_sample_relerr, echo=TRUE, eval=TRUE}
 # GOAL: Relative error for point estimates from one random sample.
 
-set.seed(___)
-n_samp <- ___
-
-samp <- ___
+set.seed(500)
+n_samp <- 1000
+samp <- df %>%
+  slice_sample(n = n_samp)
 
 # get mean point estimate for each variable
 est <- samp %>%
-  summarise(across(all_of(___), ~mean(.x, na.rm = ___))) %>%
+  summarise(across(all_of(vars), ~mean(.x, na.rm = TRUE))) %>%
   pivot_longer(everything(), names_to = "var", values_to = "sample_mean")
 
 # compute the relative error for each variable
 relerr <- est %>%
   left_join(pop %>% select(var, pop_mean = mean), by = "var") %>%
-  mutate(rel_error_pct = 100 * abs(___ - ___) / abs(___)) %>%
+  mutate(rel_error_pct = 100 * abs(sample_mean - pop_mean) / abs(pop_mean)) %>%
   arrange(desc(rel_error_pct))
 
 relerr
@@ -196,7 +196,7 @@ relerr
 **Prompt (3–4 sentences):** Which variable had the largest relative error at your chosen `n_samp`?  
 Give a scientific reason why some variables are harder to estimate from a small sample.
 
-> *Write your answer here.*
+> `le` has the largest relative error at my chose `n_samp`. Some variables are harder to estimate from a small sample because they have higher variability within the population, as previously seen when `le` was observed to have the highest population SD. This could be due to the fact the latent heat might impacted by more different varaibles than either `gpp` or `reco. 
 
 ---
 
@@ -204,13 +204,13 @@ Give a scientific reason why some variables are harder to estimate from a small 
 
 We will focus on **one variable** and simulate many repeated studies. The next code chunk is doing quite a lot. Please review the #comments throughout and check you understand generally what each section is doing.
 
-```{r relerr_by_n, echo=TRUE, eval=FALSE}
+```{r relerr_by_n, echo=TRUE, eval=TRUE}
 set.seed(480)
 
-n_grid <- c(___, ___, ___, ___)   # e.g., c(25, 100, 300, 1000)
-reps <- ___                        # e.g., 500 or 1000
+n_grid <- c(25, 100, 300, 1000)   # e.g., c(25, 100, 300, 1000)
+reps <- 1000                       # e.g., 500 or 1000
 
-target_var <- "___"                # e.g., "fch4" or "fc"
+target_var <- "le"                # e.g., "fch4" or "fc"
 
 # Pull the population vector (remove missing values once, up front)
 x_pop <- df[[target_var]]
@@ -236,7 +236,7 @@ for (i in seq_along(n_grid)) {
     x_samp <- sample(x_pop, size = n_samp, replace = FALSE)
     xbar <- mean(x_samp)
 
-    relerrs[j] <- 100 * abs(pop_mean_target - ___) / abs(pop_mean_target)
+    relerrs[j] <- 100 * abs(pop_mean_target - xbar) / abs(pop_mean_target)
   }
 
   sim_list[[i]] <- tibble(
@@ -258,21 +258,36 @@ sim_relerr
 
 2) Make a plot that communicates “relative error decreases with n”.
 
-```{r summarize_plot_relerr, echo=TRUE, eval=FALSE}
+```{r summarize_plot_relerr, echo=TRUE, eval=TRUE}
 # GOAL: Summarize and plot the relationship between n and relative error.
 # TODO: write your own code.
 
-summary_relerr <- ___
+summary_relerr <-  sim_relerr %>%
+  group_by(n) %>%
+  summarise(
+    median_relerr = median(rel_error_pct),
+    relerr_90th = quantile(rel_error_pct, 0.9),
+    .groups = "drop"
+  )
+
 summary_relerr
 
-p_relerr <- ___
+p_relerr <-  ggplot(summary_relerr, aes(x = n)) +
+  geom_line(aes(y = median_relerr), color = "darkred") +
+  geom_point(aes(y = median_relerr), color = "darkred") +
+  labs(
+    x = "Sample size (n)",
+    y = "Relative Error (%)",
+    title = "Relative Error vs Sample Size for le"
+  )
+  
 p_relerr
 ```
 
 **Prompt (3–4 sentences):** Describe the pattern. Is improvement from n=25→100 larger than 300→1000?  
 Why does accuracy show “diminishing returns” as n increases?
 
-> *Write your answer here.*
+> As sample size increases, relative error decreases. The improvement from n=25→100 is larger than 300→1000, as you can see the slope becoming shallower.  Accuracy shows 'diminishing returns' as n increases because 
 
 ---
 
