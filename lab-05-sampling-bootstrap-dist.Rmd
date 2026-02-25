@@ -279,7 +279,8 @@ p_relerr <-  ggplot(summary_relerr, aes(x = n)) +
     x = "Sample size (n)",
     y = "Relative Error (%)",
     title = "Relative Error vs Sample Size for le"
-  )
+  )+
+  theme_bw()
   
 p_relerr
 ```
@@ -287,7 +288,7 @@ p_relerr
 **Prompt (3–4 sentences):** Describe the pattern. Is improvement from n=25→100 larger than 300→1000?  
 Why does accuracy show “diminishing returns” as n increases?
 
-> As sample size increases, relative error decreases. The improvement from n=25→100 is larger than 300→1000, as you can see the slope becoming shallower.  Accuracy shows 'diminishing returns' as n increases because 
+> As sample size increases, relative error decreases. The improvement from n=25→100 is larger than 300→1000, as you can see the slope becoming shallower.  Accuracy shows 'diminishing returns' as n increases because once the sample is fairly representative of the population, additional samples result in smaller improvements. 
 
 ---
 
@@ -307,13 +308,13 @@ Compute:
 - theoretical SE
 - simulated SD of sample means (over many replications)
 
-```{r se_compare, echo=TRUE, eval=FALSE}
+```{r se_compare, echo=TRUE, eval=TRUE}
 set.seed(480)
 
 # TODO: pick a variable and sample size
-target_var <- ___
-n_samp <- ___
-reps <- ___
+target_var <- "le"
+n_samp <- 500
+reps <- 1000
 
 pop_sd_target <- pop %>% filter(var == target_var) %>% pull(sd)
 pop_mean_target <- pop %>% filter(var == target_var) %>% pull(mean)
@@ -323,8 +324,8 @@ means <- replicate(
   mean(sample(df[[target_var]], size = n_samp, replace = FALSE), na.rm = TRUE)
 )
 
-se_theory <- ___
-se_sim    <- ___
+se_theory <- pop_sd_target / sqrt(n_samp)
+se_sim    <- sd(means)
 
 tibble(
   target_var = target_var,
@@ -336,10 +337,10 @@ tibble(
 
 ### Plot the sampling distribution (fill-in)
 
-```{r plot_sampling_dist, echo=TRUE, eval=FALSE}
+```{r plot_sampling_dist, echo=TRUE, eval=TRUE}
 tibble(mean_est = means) %>%
   ggplot(aes(x = mean_est)) +
-  geom_histogram(bins = ___, alpha = 0.85) +
+  geom_histogram(bins = 10, alpha = 0.85, fill="darkred") +
   geom_vline(xintercept = pop_mean_target, linetype = "dashed", linewidth = 1.1) +
   theme_classic(base_size = 18) +
   labs(
@@ -353,7 +354,7 @@ tibble(mean_est = means) %>%
 **Prompt (3–5 sentences):** How close were `se_theory` and `se_simulated`?  
 What changes if you increase `n_samp` vs increase `reps`?
 
-> *Write your answer here.*
+> The `se_theory` (3.603047) and `se_simulated`() were fairly close to each other. If I increase `n_samp` the standard error decreases. If I  increase `reps` `se_simulated` becomes closer to `se_theory`. 
 
 ---
 
@@ -373,24 +374,24 @@ Write code to:
 - compute bootstrap SD
 - plot the bootstrap distribution
 
-```{r bootstrap_mean, echo=TRUE, eval=FALSE}
+```{r bootstrap_mean, echo=TRUE, eval=TRUE}
 set.seed(480)
 
 # TODO: choose settings
-target_var <- ___
-n_samp <- ___
-B <- ___
+target_var <- "le"
+n_samp <- 500
+B <- 1000
 
 # one "field campaign" sample
 samp <- tibble(x = sample(x_pop, size = n_samp, replace = FALSE))
 
 # bootstrap sampling of the mean
 boot_means <- replicate(
-  ___,
-  mean(sample(samp$x, size = ___, replace = TRUE))
+  B,
+  mean(sample(samp$x, size = n_samp, replace = TRUE))
 )
 
-boot_sd <- sd(___)
+boot_sd <- sd(boot_means)
 
 tibble(
   sample_mean = mean(samp$x),
@@ -398,15 +399,23 @@ tibble(
 )
 ```
 
-```{r plot_boot, echo=TRUE, eval=FALSE}
+```{r plot_boot, echo=TRUE, eval=TRUE}
 # TODO: plot boot_means and mark the sample mean
-___
+ggplot(tibble(boot_means = boot_means), aes(x = boot_means)) +
+  geom_histogram(bins = 30, fill = "darkred") +
+  geom_vline(xintercept = mean(samp$x), linetype = "dashed", size = 1) +
+  labs(
+    x = "Bootstrap Means",
+    y = "Frequency",
+    title = paste("Bootstrap Distribution of Mean for", target_var)
+  ) +
+  theme_minimal()
 ```
 
 **Prompt (4–6 sentences):** Compare the bootstrap distribution to the sampling distribution from Part III.  
 What is the bootstrap trying to approximate? When is bootstrap especially useful in EAES?
 
-> *Write your answer here.*
+> The bootstrap distribution is fairly similar to the sampling distribution from Part III. They are both approximately normal. The bootstrap is trying to approximate the sampling distribution. In EAES, population data can be hard to collect, limited, or extremely skewed. Boostrap is especially useful when you do not have access to the entire population or when it is higly variable or skewed. 
 
 ---
 
