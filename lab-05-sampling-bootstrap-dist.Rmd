@@ -670,10 +670,10 @@ A 95% bootstrap confidence interval can be estimated using the **2.5% and 97.5% 
 
 Using the **random SWC sample from earlier**, compute a **95% bootstrap confidence interval for the mean**.
 
-```{r ex1_boot_ci_mean, echo=TRUE, eval=FALSE}
+```{r ex1_boot_ci_mean, echo=TRUE, eval=TRUE}
 # GOAL: compute the 2.5% and 97.5% quantiles of the bootstrap distribution
 
-quantile(boot_means_random, probs = c(___, ___))
+quantile(boot_means_random, probs = c(0.025, 0.975))
 ```
 
 **Prompt:**
@@ -681,13 +681,15 @@ quantile(boot_means_random, probs = c(___, ___))
 Does the confidence interval contain the **true population mean (`pop_mean_swc`)**?  
 What does this tell you about the uncertainty of the estimate?
 
+>The confidence interval does contain the true population mean (35.4762). This tells me that the estimate is reasonably accurate. However, the confidence interval reveals the uncertainty in sampling as it provides a range ofplausible values for the true population mean, even though the population mean falls within the confidence interval in this instance.  
+
 ---
 
 ## Exercise 2 — Visualizing the Confidence Interval
 
 Modify the bootstrap histogram from Part II so that the **95% CI is shown on the plot**.
 
-```{r ex2_plot_ci, echo=TRUE, eval=FALSE}
+```{r ex2_plot_ci, echo=TRUE, eval=TRUE}
 boot_ci <- quantile(boot_means_random, probs = c(0.025, 0.975))
 
 tibble(boot_mean = boot_means_random) %>%
@@ -701,6 +703,8 @@ tibble(boot_mean = boot_means_random) %>%
 **Prompt:**
 
 Explain what the **red vertical lines** represent.
+
+> The red vertical lines represent the 95% confidence interval, or to be more specific the lower and upper bounds. 
 
 ---
 
@@ -719,9 +723,9 @@ Examples:
 - `swc ~ le`
 - `gpp ~ ta`
 
-```{r ex3_fit_model, echo=TRUE, eval=FALSE}
-response_var <- "___"
-predictor_var <- "___"
+```{r ex3_fit_model, echo=TRUE, eval=TRUE}
+response_var <- "swc"
+predictor_var <- "le"
 
 model <- lm(df[[response_var]] ~ df[[predictor_var]])
 
@@ -730,7 +734,7 @@ coef(model)
 
 ### Bootstrap the regression
 
-```{r ex3_bootstrap_lm, echo=TRUE, eval=FALSE}
+```{r ex3_bootstrap_lm, echo=TRUE, eval=TRUE}
 set.seed(480)
 
 B <- 2000
@@ -752,7 +756,7 @@ boot_coef <- t(boot_coef)
 
 ### Compute confidence intervals
 
-```{r ex3_ci_params, echo=TRUE, eval=FALSE}
+```{r ex3_ci_params, echo=TRUE, eval=TRUE}
 quantile(boot_coef[,1], probs = c(0.025, 0.975))  # intercept CI
 quantile(boot_coef[,2], probs = c(0.025, 0.975))  # slope CI
 ```
@@ -763,6 +767,8 @@ Interpret the slope confidence interval.
 
 - Does it include zero?
 - What does that imply about the relationship between the predictor and response variable?
+
+> The slope confidence interval does not include zero. Because the slope confidence interval is from -0.03468274 to -0.03180575 it suggests that their could be a negative linear relationship between `swc` and `le`. So this implies that as the predictor variable (`le`) increases, the response variable (`swc`) decreases.
 
 ---
 
